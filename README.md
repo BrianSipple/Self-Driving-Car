@@ -3,10 +3,14 @@ Self-Driving-Car
 
 Python implementations of the main components used to control autonomous, self-driving vehicles. 
 
-Currently includes:\n\n
+Currently includes:
 
-Filtering (histogram, kalman, and particle filters)\n 
-A-star pathfinding\n
-Gradient-descent path smoothing\n
-Cyclic and non-cyclic PID controlling with cross-validation\n
-SLAM mapping and more
+		Filtering (histogram, kalman, and particle filters)
+
+		A-star pathfinding
+
+		Gradient-descent path smoothing
+
+		Cyclic and non-cyclic PID controlling with cross-validation
+
+		SLAM mapping and more
