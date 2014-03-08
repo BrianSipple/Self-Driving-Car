@@ -424,12 +424,13 @@ class robot:
 
 ######################################################
 
-# --------
-# this routine makes the robot data
-#
 
 def make_data(N, num_landmarks, world_size, measurement_range, motion_noise, 
               measurement_noise, distance):
+    """
+    This routine makes the robot data, returning movement, along with dx and dy from 
+    the landmark measured.
+    """
 
 
     complete = False
@@ -510,8 +511,8 @@ def slam(data, N, num_landmarks, motion_noise, measurement_noise):
 
     Omega = matrix()
     Omega.zero(dim, dim)
-    Omega.value[0][0] = 1.0
-    Omega.value[1][1] = 1.0     # since we're using x and y, each step will forware update two positions in our matrix/vector 
+    Omega.value[0][0] = 1.0     # strength value of 1
+    Omega.value[1][1] = 1.0     # since we're using x and y, each step will forward update two positions in our matrix/vector 
 
     Xi = matrix()
     Xi.zero(dim, 1)
@@ -525,7 +526,7 @@ def slam(data, N, num_landmarks, motion_noise, measurement_noise):
         # n is the path index of the motion in the matrix / vector (data item * 2)
         n = k * 2
         
-        measurement = data[k][0]   # 'data is structured as [Z [dx, dy]]'
+        measurement = data[k][0]   # 'data is structured as [ [[Z]] [dx, dy]]'
         motion      = data[k][1]
 
         for i in range(len(measurement)):
@@ -536,7 +537,7 @@ def slam(data, N, num_landmarks, motion_noise, measurement_noise):
             # update the information in the matrix/vector based on the measurement
             # b is an auxiliarry variable we use to account for having both x, and y in each measurement
             for b in range(2):
-                Omega.value[n+b][n+b] +=  1.0 / measurement_noise
+                Omega.value[n+b][n+b] +=  1.0 / measurement_noise   
                 Omega.value[m+b][m+b] +=  1.0 / measurement_noise
                 Omega.value[n+b][m+b] += -1.0 / measurement_noise
                 Omega.value[m+b][n+b] += -1.0 / measurement_noise
@@ -558,7 +559,74 @@ def slam(data, N, num_landmarks, motion_noise, measurement_noise):
     return mu
         
     
+def online_slam(data, N, num_landmarks, motion_noise, measurement_noise):
+    
+    dim = 2 * (1 + num_landmarks)   
+    
+    Omega = matrix()
+    Omega.zero(dim, dim)
+    Omega.value[0][0] = 1.0
+    Omega.value[1][1] = 1.0
+    
+    Xi = matrix()
+    Xi.zero(dim, 1)
+    Xi.value[0][0] = world_size / 2.0
+    Xi.value[1][0] = world_size / 2.0    
+
+    
+    for k in range(len(data)):
         
+        measurement = data[k][0]
+        motion = data[k][1]
+        
+        for i in range(len(measurement)):
+            
+            m = 2 * (1 + measurement[i][0])
+           
+            for b in range(2):
+                
+                Omega.value[b][b]       +=  1.0 / measurement_noise
+                Omega.value[m+b][m+b]   +=  1.0 / measurement_noise
+                Omega.value[b][m+b]     += -1.0 / measurement_noise
+                Omega.value[m+b][b]     += -1.0 / measurement_noise
+                Xi.value[b][0]          += -measurement[i][1+b] / measurement_noise
+                Xi.value[m+b][0]        +=  measurement[i][1+b] / measurement_noise
+
+    # expand the information matrix and vecotr by one new position to add space for the next pose
+
+        list = [0, 1] + range(4, dim+2)      #set up the list for our expansion. [0,1] represents our oringal pose, and then we sqeeze in more indices for the landmarks (2 more rows and 2 more columns)
+        Omega = Omega.expand(dim+2, dim+2, list, list)
+        Xi    = Xi.expand(dim+2, 1, list, [0])
+
+
+        # update the information matrix/vector based on the robot motion
+        # this is occuring at the two new rows and columns that we put in
+        for b in range(4):
+            Omega.value[b][b]       += 1.0 / motion_noise
+        for b in range(2):
+            Omega.value[b  ][b+2]   +=  -1.0 / motion_noise
+            Omega.value[b+2][b  ]   +=  -1.0 / motion_noise
+            Xi.value[b  ][0]        +=  -motion[b] / motion_noise
+            Xi.value[b+2][0]        +=    motion[b] / motion_noise
+
+        # now factor in the previous pose
+        # we use the take() command to kick out the very first (i.e. old) row and column
+        newlist = range(2, len(Omega.value))
+        a = Omega.take([0, 1], newlist)
+        b = Omega.take([0, 1])
+        c = Xi.take([0, 1], [0])
+        Omega = Omega.take(newlist) - (a.transpose() * b.inverse() * a)
+        Xi = Xi.take(newlist, [0]) - (a.transpose() * b.inverse() * c)
+
+    # Compute the best estimate
+    mu = Omega.inverse() * Xi
+
+    return mu, Omega
+
+
+
+
+
 ############### ENTER YOUR CODE ABOVE HERE ###################
 
 # ------------------------------------------------------------------------
@@ -667,5 +735,8 @@ test_data2 = [[[[0, 26.543274387283322, -6.262538160312672], [3, 9.9373968257997
 #result = slam(test_data2, 20, 5, 2.0, 2.0)
 #print_result(20, 5, result)
 #print result
+
+
+
 
 
