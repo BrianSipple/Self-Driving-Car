@@ -5,12 +5,12 @@ Python implementations of the main components used to control autonomous, self-d
 
 Currently includes:
 
-		Filtering (histogram, kalman, and particle filters)
+	-	Filtering (histogram, kalman, and particle filters)
 
-		A-star pathfinding
+	-	A-star pathfinding
 
-		Gradient-descent path smoothing
+	-	Gradient-descent path smoothing
 
-		Cyclic and non-cyclic PID controlling with cross-validation
+	-	Cyclic and non-cyclic PID controlling with cross-validation
 
-		SLAM mapping and more
+	-	SLAM mapping and more
